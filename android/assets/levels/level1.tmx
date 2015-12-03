@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.0" orientation="orthogonal" renderorder="right-down" width="30" height="30" tilewidth="64" tileheight="64" nextobjectid="37">
+ <tileset firstgid="1" name="space-blks-1.034" tilewidth="64" tileheight="64" tilecount="192">
+  <image source="space-blks-1.034.png" width="1024" height="768"/>
+ </tileset>
+ <layer name="Background Color" width="30" height="30">
+  <data encoding="base64" compression="zlib">
+   eJztwwENAAAMw6DOv+kLOSSsmqqqqu8ezqADhQ==
+  </data>
+ </layer>
+ <layer name="Graphic Layer" width="30" height="30">
+  <data encoding="base64" compression="zlib">
+   eJzVlslOwzAQhkdsLdwotOUMZblSKOXKIsSVRahwC2+AuHBleQR4AJYH5bewpcEad+y4TSHSd4jjzJeMPZMQTe6YAtMVMcO8DbBYEct/0OvybnIyGxlvT8mtizPMa86X7Jymd2074O2CnQANFkfyzjFvM+BNoeXFi3nfst4Nm9NCiDdOr7vnv3troE76/s7xroI10GHzr8FNxPvneHlN9EbgvYr0SuR4u+z5U71tsJLgvQe3HmW8Lvc9ZZ5WA+P6LrzRz57knJDen4/AMYXr5Qk8RuTFR1vfC3A5JFcv4BnclcxHyBtax3fwMYJ1SF1f0682wRY4tcT0r1yvqaM+2AcD8EC/69nVa015rrJ15PD7iPOa8QUwT3KfCXm1f5wWix/yGuervb4e6ZX+cQ7AoZB33r8KNj6wSP0t5JW+RWfgPJB3t+8Lb3yX5LrQ6iimJ3Kkfsz7sub9BF8Jvpz6dbmtgg5N9vgGwvNRfQ==
+  </data>
+ </layer>
+ <objectgroup name="Walls">
+  <object id="5" x="256" y="1088" width="128" height="128"/>
+  <object id="6" x="640" y="640" width="128" height="320"/>
+  <object id="9" x="320" y="256" width="192" height="512"/>
+  <object id="11" x="256" y="1472" width="192" height="192"/>
+  <object id="14" x="640" y="1280" width="384" height="128"/>
+  <object id="17" x="896" y="1408" width="128" height="192"/>
+  <object id="18" x="1280" y="1344" width="256" height="256"/>
+  <object id="19" x="1280" y="448" width="64" height="640"/>
+  <object id="20" x="1344" y="1024" width="320" height="64"/>
+  <object id="22" x="1152" y="256" width="512" height="64"/>
+  <object id="23" x="1600" y="320" width="64" height="512"/>
+  <object id="26" x="64" y="64" width="64" height="1792"/>
+  <object id="32" x="128" y="64" width="1664" height="64"/>
+  <object id="33" x="1792" y="64" width="64" height="1792"/>
+  <object id="34" x="128" y="1792" width="1664" height="64"/>
+  <object id="36" x="640" y="1216" width="128" height="64"/>
+ </objectgroup>
+</map>
