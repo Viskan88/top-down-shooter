@@ -1,0 +1,26 @@
+
+handgun_shoot.png
+format: RGBA8888
+filter: Nearest,Nearest
+repeat: none
+survivor-shoot_handgun_1_small
+  rotate: false
+  xy: 1, 1
+  size: 76, 64
+  orig: 76, 64
+  offset: 0, 0
+  index: -1
+survivor-shoot_handgun_0_small
+  rotate: false
+  xy: 79, 1
+  size: 64, 64
+  orig: 64, 64
+  offset: 0, 0
+  index: -1
+survivor-shoot_handgun_2_small
+  rotate: false
+  xy: 145, 1
+  size: 64, 64
+  orig: 64, 64
+  offset: 0, 0
+  index: -1
