@@ -2,10 +2,8 @@ package se.victormattsson.game.screens;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
-import com.badlogic.gdx.InputProcessor;
+import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.Screen;
-import com.badlogic.gdx.assets.AssetManager;
-import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
@@ -20,13 +18,16 @@ import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 
 import java.util.HashMap;
-
-import javax.net.ssl.SNIHostName;
+import java.util.Iterator;
 
 import se.victormattsson.game.ShooterGame;
-import se.victormattsson.game.sprites.Crate;
-import se.victormattsson.game.sprites.FirstAid;
-import se.victormattsson.game.sprites.Player;
+import se.victormattsson.game.scenes.HUD;
+import se.victormattsson.game.sprites.enemies.Enemy;
+import se.victormattsson.game.sprites.items.Ammunition;
+import se.victormattsson.game.sprites.items.Crate;
+import se.victormattsson.game.sprites.items.FirstAid;
+import se.victormattsson.game.sprites.player.Player;
+import se.victormattsson.game.util.AudioManager;
 import se.victormattsson.game.util.Box2DWorldCreator;
 import se.victormattsson.game.util.WorldContactListener;
 
@@ -37,21 +38,16 @@ public class PlayScreen implements Screen {
 
     //Reference to our game
     private ShooterGame game;
-
+    private HUD hud;
     private Player player;
-
-    private TextureAtlas atlas;
     private HashMap<String, TextureAtlas> atlases = new HashMap<String, TextureAtlas>();
-
     //Camera and viewport
     private OrthographicCamera camera;
     private Viewport viewport;
-
     //Box2d variables
     private World world;
     private Box2DDebugRenderer debugRenderer;
     private Box2DWorldCreator worldCreator;
-
     //Tiled map variables
     private TmxMapLoader mapLoader;
     private TiledMap map;
@@ -59,31 +55,31 @@ public class PlayScreen implements Screen {
 
     public PlayScreen(ShooterGame game) {
 
+        Gdx.input.setCursorCatched(true);
+
         atlases.put("player_move", new TextureAtlas("player/shooter_handgun.pack"));
         atlases.put("player_idle", new TextureAtlas("player/handgun_idle.pack"));
         atlases.put("player_shoot", new TextureAtlas("player/handgun_shoot.pack"));
         atlases.put("player_reload", new TextureAtlas("player/handgun_reload.pack"));
+        atlases.put("enemy_idle", new TextureAtlas("player/handgun_idle_enemy.pack"));
 
         this.game = game;
 
-        if (game.music != null) {
-            float volume = game.music.getVolume();
-            game.music = Gdx.audio.newMusic(Gdx.files.internal("sounds/Jesús Lastra - Heatstroke.mp3"));
-            game.music.setLooping(true);
-            game.music.setVolume(volume);
-            game.music.play();
+        if (!AudioManager.isMusicOff()) {
+            AudioManager.playMusic("sounds/Jesús Lastra - Heatstroke.mp3");
         }
 
         camera = new OrthographicCamera();
-        viewport = new FitViewport(ShooterGame.V_WIDTH / ShooterGame.PPM, ShooterGame.V_HEIGHT / ShooterGame.PPM, camera);
+        viewport = new FitViewport(ShooterGame.V_WIDTH / 75, ShooterGame.V_HEIGHT / 75, camera);
         mapLoader = new TmxMapLoader();
-        map = mapLoader.load("levels/level1.tmx");
+        map = mapLoader.load("levels/level" + ShooterGame.currentLvl +".tmx");
         tiledMapRenderer = new OrthogonalTiledMapRenderer(map, 1 / ShooterGame.PPM);
         camera.position.set(viewport.getWorldWidth() / 2, viewport.getWorldHeight() / 2, 0);
         world = new World(new Vector2(0, 0), true);
         worldCreator = new Box2DWorldCreator(this);
         debugRenderer = new Box2DDebugRenderer();
         player = new Player(this);
+        hud = new HUD(game.batch);
         world.setContactListener(new WorldContactListener());
     }
 
@@ -107,19 +103,24 @@ public class PlayScreen implements Screen {
                 player.playerBody.applyLinearImpulse(new Vector2(1f, 0), player.playerBody.getWorldCenter(), true);
             }
         } else {
-            player.playerBody.setLinearVelocity(0,0);
+            player.playerBody.setLinearVelocity(0, 0);
         }
-        if (Gdx.input.isKeyPressed(Input.Keys.R)){
-            System.out.println(player.getAmmunition());
-            if (!player.isReloading() && player.getAmmunition() < 20)
-            player.reload();
-        }
-        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
-            if (player.getAmmunition() > 0) {
-                player.shoot();
-                System.out.println(player.getAmmunition());
+        if (Gdx.input.isKeyPressed(Input.Keys.R)) {
+            if (!player.isReloading()) {
+                player.reload();
             }
         }
+        Gdx.input.setInputProcessor(new InputAdapter() {
+            public boolean touchDown(int screenX, int screenY, int pointer, int button) {
+                if (button == Input.Buttons.LEFT) {
+                    if (!player.isReloading()) {
+                        player.shoot();
+                    }
+                    return true;
+                }
+                return false;
+            }
+        });
     }
 
     public void update(float dt) {
@@ -130,6 +131,7 @@ public class PlayScreen implements Screen {
 
         player.update(dt);
 
+        hud.update();
 
         for (Crate crate : worldCreator.getCrates()) {
             crate.update(dt);
@@ -137,8 +139,19 @@ public class PlayScreen implements Screen {
         for (FirstAid firstaid : worldCreator.getFirstAids()) {
             firstaid.update(dt);
         }
+        for (Ammunition ammunition : worldCreator.getAmmunition()) {
+            ammunition.update(dt);
+        }
 
-        //update camera position to where the playerBody is
+        for (Iterator<Enemy> enemies = Box2DWorldCreator.getEnemies().iterator(); enemies.hasNext(); ) {
+            Enemy enemy = enemies.next();
+            enemy.update(dt, player);
+            if (enemy.isDead()) {
+                enemies.remove();
+                hud.enemyKilled();
+            }
+        }
+        //update camera position to where the body is
         camera.position.set(player.playerBody.getPosition().x, player.playerBody.getPosition().y, 0);
 
         camera.update();
@@ -169,8 +182,41 @@ public class PlayScreen implements Screen {
         for (FirstAid firstaid : worldCreator.getFirstAids()) {
             firstaid.draw(game.batch);
         }
+        for (Ammunition ammunition : worldCreator.getAmmunition()) {
+            ammunition.draw(game.batch);
+        }
+        for (Enemy enemies : Box2DWorldCreator.getEnemies()) {
+            enemies.draw(game.batch);
+        }
+
         game.batch.end();
 
+        game.batch.setProjectionMatrix(hud.stage.getCamera().combined);
+        hud.stage.draw();
+
+        if (gameOver()) {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            game.setScreen(new GameOverScreen(game));
+            dispose();
+        }
+
+        if (hud.isObjectiveDone()){
+            if (ShooterGame.currentLvl == ShooterGame.LEVEL_NR){
+                game.setScreen(new GameOverScreen(game));
+                dispose();
+            }else {
+                game.setScreen(new LevelSummaryScreen(game));
+                dispose();
+            }
+        }
+    }
+
+    public boolean gameOver() {
+        return player.getState() == Player.State.DEAD;
     }
 
     @Override
@@ -198,10 +244,6 @@ public class PlayScreen implements Screen {
 
     }
 
-    @Override
-    public void dispose() {
-    }
-
     public TextureAtlas getAtlas(String key) {
         return atlases.get(key);
     }
@@ -216,6 +258,15 @@ public class PlayScreen implements Screen {
 
     public Vector3 getMousePos() {
         Vector3 worldCoordinates = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
-        return camera.unproject(worldCoordinates);
+        return viewport.unproject(worldCoordinates);
+    }
+
+    @Override
+    public void dispose() {
+        world.dispose();
+        map.dispose();
+        hud.dispose();
+        debugRenderer.dispose();
+        tiledMapRenderer.dispose();
     }
 }

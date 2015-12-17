@@ -19,6 +19,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 
 import se.victormattsson.game.ShooterGame;
+import se.victormattsson.game.util.AudioManager;
 
 /**
  * Created by victormattsson on 2015-12-03.
@@ -35,13 +36,12 @@ public class MenuScreen implements Screen {
 
     public MenuScreen(final ShooterGame game) {
 
+        Gdx.input.setCursorCatched(false);
         buttonAtlas = new TextureAtlas("buttons/buttons.pack");
         this.game = game;
 
-        if (this.game.music != null && !game.music.isPlaying()) {
-            this.game.music = Gdx.audio.newMusic(Gdx.files.internal("sounds/Jesús Lastra - Hydrosphere.mp3"));
-            this.game.music.setLooping(true);
-            this.game.music.play();
+        if (!AudioManager.isMusicOff()) {
+            AudioManager.playMusic("sounds/Jesús Lastra - Hydrosphere.mp3");
         }
 
         TextureRegion idleBtnRegion = new TextureRegion(buttonAtlas.findRegion("buttons_scaled"), 0, 0, 800, 45);
@@ -78,9 +78,8 @@ public class MenuScreen implements Screen {
 
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                if (game.music != null) game.music.stop();
+//                if (game.music != null) game.music.stop();
                 game.setScreen(new PlayScreen(game));
-//                game.setScreen(new GameOverScreen(game));
                 dispose();
             }
         });
@@ -117,7 +116,6 @@ public class MenuScreen implements Screen {
 
         Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-
         stage.act(delta);
         stage.draw();
     }

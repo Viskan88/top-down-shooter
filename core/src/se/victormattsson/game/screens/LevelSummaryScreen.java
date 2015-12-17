@@ -1,24 +1,17 @@
 package se.victormattsson.game.screens;
 
-import com.badlogic.gdx.Audio;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
-import com.badlogic.gdx.assets.AssetManager;
-import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.scenes.scene2d.ui.CheckBox;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
-import com.badlogic.gdx.scenes.scene2d.ui.Slider;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
-import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 
@@ -26,120 +19,86 @@ import se.victormattsson.game.ShooterGame;
 import se.victormattsson.game.util.AudioManager;
 
 /**
- * Created by victormattsson on 2015-12-04.
+ * Created by Victor Mattsson on 2015-12-16.
  */
-public class SettingsScreen implements Screen {
+public class LevelSummaryScreen implements Screen{
 
-    private final ShooterGame game;
-    private TextureRegionDrawable drawableIdleBtn, drawablePressedBtn, drawableHoverBtn;
-    private Stage stage;
-    private Slider slider;
-    private CheckBox soundCheck;
-    private Label volumeLabelPercent;
+    private ShooterGame game;
     private TextureAtlas buttonAtlas;
+    private TextureRegionDrawable drawableIdleBtn, drawablePressedBtn, drawableHoverBtn;
+    private final BitmapFont white;
+    private Stage stage;
     private Skin skin;
     private Table table;
-    private BitmapFont white, black;
-    private float volume;
 
-    public SettingsScreen(ShooterGame game) {
+    public LevelSummaryScreen (ShooterGame game) {
+
+        Gdx.input.setCursorCatched(false);
         this.game = game;
-        stage = new Stage();
+
+        if (!AudioManager.isMusicOff()) {
+            AudioManager.playMusic("sounds/Jesús Lastra - Hydrosphere.mp3");
+        }
 
         buttonAtlas = new TextureAtlas("buttons/buttons.pack");
-        skin = new Skin(Gdx.files.internal("skins/uiskin.json"));
-        if (!AudioManager.isMusicOff()) {
-            soundCheck = new CheckBox("On", skin);
-            soundCheck.setChecked(true);
-        } else {
-            soundCheck = new CheckBox("Off", skin);
-            soundCheck.setChecked(false);
-        }
+
         TextureRegion idleBtnRegion = new TextureRegion(buttonAtlas.findRegion("buttons_scaled"), 0, 0, 800, 45);
         TextureRegion pressedBtnRegion = new TextureRegion(buttonAtlas.findRegion("buttons_scaled"), 0, 150, 800, 45);
         TextureRegion hoverBtnRegion = new TextureRegion(buttonAtlas.findRegion("buttons_scaled"), 0, 100, 800, 45);
-
-        volume = AudioManager.getVolume();
-        slider = new Slider(0f, 100f, 1, false, skin);
-        slider.setValue((int) (volume * 100));
-
 
         drawableIdleBtn = new TextureRegionDrawable(idleBtnRegion);
         drawablePressedBtn = new TextureRegionDrawable(pressedBtnRegion);
         drawableHoverBtn = new TextureRegionDrawable(hoverBtnRegion);
 
         white = new BitmapFont(Gdx.files.internal("fonts/gabriola_white.fnt"), false);
-        black = new BitmapFont(Gdx.files.internal("fonts/gabriola_black.fnt"), false);
+
+        stage = new Stage();
+        table = new Table();
+        skin = new Skin(Gdx.files.internal("skins/uiskin.json"));
 
         Gdx.input.setInputProcessor(stage);
-
-        table = new Table();
-        table.setFillParent(true);
-
     }
 
     @Override
     public void show() {
 
-        Gdx.input.setCursorCatched(false);
-
         Label.LabelStyle labelStyle = new Label.LabelStyle();
         labelStyle.font = white;
-
-        Label volumeLbl = new Label("Volume", labelStyle);
-        Label soundLbl = new Label("Sound", labelStyle);
-        volumeLabelPercent = new Label((int) (slider.getValue()) + "%", skin);
-
-        slider.addListener(new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent event, Actor actor) {
-                volume = slider.getValue() / 100;
-                AudioManager.setVolume(volume);
-                volumeLabelPercent.setText((int) slider.getValue() + "%");
-            }
-        });
-
-        soundCheck.addListener(new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent event, Actor actor) {
-                if (!soundCheck.isChecked()) {
-                    AudioManager.stopMusic();
-                    soundCheck.setText("Off");
-                } else {
-                    AudioManager.playMusic("sounds/Jesús Lastra - Hydrosphere.mp3");
-                    AudioManager.setVolume(volume);
-                    soundCheck.setText("On");
-                }
-            }
-        });
-
-        table.add(volumeLbl).right().padRight(10);
-        table.add(slider).left().padLeft(10);
-        table.add(volumeLabelPercent);
-        table.row();
-
-        table.add(soundLbl).right().padRight(10);
-        table.add(soundCheck).left().padLeft(10);
-        table.row();
-
         TextButton.TextButtonStyle buttonStyle = new TextButton.TextButtonStyle();
         buttonStyle.up = drawableIdleBtn;
         buttonStyle.down = drawablePressedBtn;
         buttonStyle.over = drawableHoverBtn;
         buttonStyle.font = white;
 
-        TextButton backBtn = new TextButton("Back", buttonStyle);
-        backBtn.addListener(new ClickListener() {
+        Label objectiveClearLbl = new Label("Objectives Cleared", labelStyle);
+        TextButton playAgainBtn = new TextButton("Next Level", buttonStyle);
+        playAgainBtn.addListener(new ClickListener() {
 
             @Override
             public void clicked(InputEvent event, float x, float y) {
+                ShooterGame.currentLvl += 1;
+                game.setScreen(new PlayScreen(game));
+                dispose();
+            }
+        });
+        TextButton mainMenuBtn = new TextButton("Back To Main Menu", buttonStyle);
+        mainMenuBtn.addListener(new ClickListener() {
+
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                ShooterGame.currentLvl = 1;
                 game.setScreen(new MenuScreen(game));
                 dispose();
             }
         });
 
-        table.add(backBtn).colspan(3).pad(10f);
-//        table.debug();
+        table.setFillParent(true);
+        table.add(objectiveClearLbl).padBottom(20f);
+        table.row();
+        table.add(playAgainBtn).pad(5f);
+        table.row();
+        table.add(mainMenuBtn).pad(5f);
+
         stage.addActor(table);
     }
 
@@ -175,9 +134,7 @@ public class SettingsScreen implements Screen {
 
     @Override
     public void dispose() {
-
         white.dispose();
-        black.dispose();
         skin.dispose();
         stage.dispose();
         buttonAtlas.dispose();

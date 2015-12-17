@@ -1,10 +1,9 @@
-package se.victormattsson.game.sprites;
+package se.victormattsson.game.sprites.items;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.Sprite;
-import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef;
@@ -34,10 +33,10 @@ public class FirstAid extends Sprite{
         setPosition(rectangle.getX() / ShooterGame.PPM, rectangle.getY() / ShooterGame.PPM);
         setBounds(getX(), getY(), 64 / ShooterGame.PPM, 33 / ShooterGame.PPM);
 
-        defineCrate();
+        defineFirstAid();
     }
 
-    private void defineCrate() {
+    private void defineFirstAid() {
         BodyDef bdef = new BodyDef();
         bdef.position.set((rectangle.getX() + rectangle.getWidth() / 2) / ShooterGame.PPM,
                 (rectangle.getY() + rectangle.getHeight() / 2) / ShooterGame.PPM);
@@ -62,7 +61,6 @@ public class FirstAid extends Sprite{
         }else {
             setRegion(boxTexture);
             setPosition(body.getPosition().x - getWidth() / 2, body.getPosition().y - getHeight() / 2);
-            setRotation(body.getAngle() * MathUtils.radiansToDegrees);
             setOriginCenter();
         }
     }

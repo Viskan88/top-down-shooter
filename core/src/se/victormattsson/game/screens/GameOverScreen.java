@@ -16,6 +16,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 
 import se.victormattsson.game.ShooterGame;
+import se.victormattsson.game.util.AudioManager;
 
 /**
  * Created by Victor Mattsson on 2015-12-08.
@@ -32,12 +33,11 @@ public class GameOverScreen implements Screen {
 
     public GameOverScreen(ShooterGame game) {
 
+        Gdx.input.setCursorCatched(false);
         this.game = game;
 
-        if (this.game.music != null && !game.music.isPlaying()) {
-            this.game.music = Gdx.audio.newMusic(Gdx.files.internal("sounds/Jesús Lastra - Hydrosphere.mp3"));
-            this.game.music.setLooping(true);
-            this.game.music.play();
+        if (!AudioManager.isMusicOff()) {
+            AudioManager.playMusic("sounds/Jesús Lastra - Hydrosphere.mp3");
         }
 
         buttonAtlas = new TextureAtlas("buttons/buttons.pack");
@@ -76,6 +76,7 @@ public class GameOverScreen implements Screen {
 
             @Override
             public void clicked(InputEvent event, float x, float y) {
+                ShooterGame.currentLvl = 1;
                 game.setScreen(new PlayScreen(game));
                 dispose();
             }
@@ -85,6 +86,7 @@ public class GameOverScreen implements Screen {
 
             @Override
             public void clicked(InputEvent event, float x, float y) {
+                ShooterGame.currentLvl = 1;
                 game.setScreen(new MenuScreen(game));
                 dispose();
             }
@@ -92,8 +94,10 @@ public class GameOverScreen implements Screen {
 
         table.setFillParent(true);
         table.add(gameOverLabel).padBottom(20f);
-        table.row();
-        table.add(playAgainBtn).pad(5f);
+//        if(ShooterGame.currentLvl < ShooterGame.LEVEL_NR){
+            table.row();
+            table.add(playAgainBtn).pad(5f);
+//        }
         table.row();
         table.add(mainMenuBtn).pad(5f);
 

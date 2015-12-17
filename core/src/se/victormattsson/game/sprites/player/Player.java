@@ -1,8 +1,9 @@
-package se.victormattsson.game.sprites;
+package se.victormattsson.game.sprites.player;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.g2d.Animation;
+import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.MathUtils;
@@ -13,43 +14,46 @@ import com.badlogic.gdx.physics.box2d.BodyDef;
 import com.badlogic.gdx.physics.box2d.CircleShape;
 import com.badlogic.gdx.physics.box2d.FixtureDef;
 import com.badlogic.gdx.physics.box2d.World;
-import com.badlogic.gdx.physics.box2d.joints.WheelJointDef;
 import com.badlogic.gdx.utils.Array;
-
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
 
 import se.victormattsson.game.ShooterGame;
 import se.victormattsson.game.screens.PlayScreen;
+import se.victormattsson.game.sprites.projectile.PlayerProjectile;
 
 /**
  * Created by victormattsson on 2015-12-02.
  */
 public class Player extends Sprite {
 
-    public enum State {IDLE, MOVING, SHOOTING, RELOADING}
-
+    public enum State {IDLE, MOVING, SHOOTING, RELOADING, DEAD}
     private final float MAX_SPEED = 6;
     private State currentState;
     private State previousState;
     private PlayScreen screen;
     public World world;
     public Body playerBody;
-    public Body cursorBody;
-    private int healthPoints = 100;
-    private int ammunition = 20;
+    public static int healthPoints;
+    public static int clipAmmo;
+    public static int totalAmmunition;
+    public static final int CLIP_SIZE = 12;
     private Sound sound;
     private Animation playerMove, playerIdle, playerShoot, playerReload;
     private float stateTimer;
-    private List<Projectile> projectiles = new ArrayList<Projectile>();
+    private Array<PlayerProjectile> projectiles = new Array<PlayerProjectile>();
     private boolean shooting;
     private boolean reloading;
+    private Crosshair crosshair;
 
     public Player(PlayScreen screen) {
+        healthPoints = 100;
+        currentState = State.IDLE;
+        previousState = State.IDLE;
         this.screen = screen;
         world = screen.getWorld();
         stateTimer = 0;
+        clipAmmo = CLIP_SIZE;
+        totalAmmunition = CLIP_SIZE * 2;
+        crosshair = new Crosshair(screen);
 
         //Array with TextureRegions for animations
         Array<TextureRegion> frames = new Array<TextureRegion>();
@@ -85,20 +89,18 @@ public class Player extends Sprite {
 
         //Set bound of sprite to ber correct size
         setBounds(0, 0, 64 / ShooterGame.PPM, 64 / ShooterGame.PPM);
-//        setRegion(playerMove.getKeyFrame(Gdx.graphics.getDeltaTime(), true));
         setRegion(playerIdle.getKeyFrame(Gdx.graphics.getDeltaTime(), true));
         definePlayer();
-        defineCursor();
-        defineMouseJoint();
     }
 
     public void update(float dt) {
-        for (Iterator<Projectile> projectiles = getProjectiles().iterator(); projectiles.hasNext(); ) {
-            Projectile projectile = projectiles.next();
+
+        for (PlayerProjectile projectile : projectiles) {
             projectile.update(dt);
-            if (projectile.toDestroy()) {
+            if (projectile.toDestroy()){
+                projectile.setDestroyed(true);
                 world.destroyBody(projectile.getProjectile());
-                projectiles.remove();
+                projectiles.removeValue(projectile, true);
             }
         }
 
@@ -109,11 +111,11 @@ public class Player extends Sprite {
         }
 
         setPosition(playerBody.getPosition().x - getWidth() / 2, playerBody.getPosition().y - getHeight() / 2);
-        setRegion(getFrame(dt));
-        cursorBody.setTransform(screen.getMousePos().x, screen.getMousePos().y, 0);
+        crosshair.update();
         playerBody.setTransform(playerBody.getPosition().x, playerBody.getPosition().y, getMouseDirection());
         setRotation((playerBody.getAngle() * MathUtils.radiansToDegrees) - 170f);
         setOriginCenter();
+        setRegion(getFrame(dt));
     }
 
     private TextureRegion getFrame(float dt) {
@@ -129,7 +131,7 @@ public class Player extends Sprite {
                 }
                 break;
             case SHOOTING:
-                    region = playerShoot.getKeyFrame(stateTimer);
+                region = playerShoot.getKeyFrame(stateTimer);
                 if (playerShoot.isAnimationFinished(stateTimer)) {
                     shooting = false;
                 }
@@ -140,19 +142,21 @@ public class Player extends Sprite {
             case MOVING:
                 region = playerMove.getKeyFrame(stateTimer, true);
                 break;
+            case DEAD:
+                region = playerIdle.getKeyFrame(stateTimer, true);
+                break;
 
         }
 
         stateTimer = currentState == previousState ? stateTimer + dt : 0;
         previousState = currentState;
-
         return region;
     }
 
     public void definePlayer() {
         //Body
         BodyDef bdef = new BodyDef();
-        bdef.position.set(1000 / ShooterGame.PPM, 500 / ShooterGame.PPM);
+        bdef.position.set(1050 / ShooterGame.PPM, 500 / ShooterGame.PPM);
         bdef.type = BodyDef.BodyType.DynamicBody;
         playerBody = world.createBody(bdef);
 
@@ -165,78 +169,73 @@ public class Player extends Sprite {
         fdef.filter.categoryBits = ShooterGame.PLAYER_BIT;
         fdef.filter.maskBits = ShooterGame.CRATE_BIT |
                 ShooterGame.WALL_BIT |
-                ShooterGame.FIRST_AID_BIT;
+                ShooterGame.FIRST_AID_BIT |
+                ShooterGame.AMMO_BIT |
+                ShooterGame.ENEMY_BIT |
+                ShooterGame.ENEMY_PROJECTILE_BIT;
         playerBody.createFixture(fdef).setUserData(this);
 
         shape.dispose();
     }
 
-    private void defineCursor() {
-        BodyDef bdef = new BodyDef();
-        bdef.type = BodyDef.BodyType.KinematicBody;
-        cursorBody = world.createBody(bdef);
-
-        FixtureDef fdef = new FixtureDef();
-        CircleShape shape = new CircleShape();
-        shape.setRadius(20 / ShooterGame.PPM);
-
-        fdef.shape = shape;
-        fdef.filter.categoryBits = ShooterGame.CURSOR_BIT;
-        cursorBody.createFixture(fdef).setUserData(this);
-        cursorBody.setActive(false);
-
-        shape.dispose();
-    }
-
-    private void defineMouseJoint() {
-
-//        WheelJointDef wheelJointDef = new WheelJointDef();
-//        wheelJointDef.bodyA = playerBody;
-//        wheelJointDef.bodyB = cursorBody;
-//        wheelJointDef.dampingRatio = 0;
-//        wheelJointDef.frequencyHz = 0;
-//        wheelJointDef.motorSpeed = 0;
-//        wheelJointDef.maxMotorTorque = 0;
-//
-//        world.createJoint(wheelJointDef);
-    }
-
     public void shoot() {
-        shooting = true;
-        Projectile projectile = new Projectile(screen, playerBody, this);
-        projectile.setImpulse();
-        projectiles.add(projectile);
-        sound = Gdx.audio.newSound(Gdx.files.internal("sounds/pistol.wav"));
-        long ID = sound.play();
-        sound.setVolume(ID, 0.2f);
-        ammunition--;
+        if (clipAmmo > 0) {
+            shooting = true;
+            PlayerProjectile projectile = new PlayerProjectile(screen, playerBody);
+            projectiles.add(projectile);
+            projectile.setImpulse();
+            sound = Gdx.audio.newSound(Gdx.files.internal("sounds/pistol.wav"));
+            long ID = sound.play();
+            sound.setVolume(ID, 0.2f);
+            clipAmmo--;
+        }
     }
 
     public void reload() {
-        reloading = true;
-        sound = Gdx.audio.newSound(Gdx.files.internal("sounds/Eject Clip And Re-Load.wav"));
-        long ID = sound.play();
-        sound.setVolume(ID, 0.5f);
-        ammunition = 20;
+        if (clipAmmo < CLIP_SIZE && totalAmmunition > 0) {
+            reloading = true;
+            sound = Gdx.audio.newSound(Gdx.files.internal("sounds/Eject Clip And Re-Load.wav"));
+            long ID = sound.play();
+            sound.setVolume(ID, 0.5f);
+
+            int remainder = CLIP_SIZE - clipAmmo;
+
+            if (totalAmmunition < CLIP_SIZE && remainder >= totalAmmunition) {
+                clipAmmo += totalAmmunition;
+                totalAmmunition = 0;
+            } else {
+                clipAmmo += remainder;
+                totalAmmunition -= remainder;
+            }
+        }
     }
 
+    public void hit() {
+        healthPoints -= 15;
+        if (healthPoints < 0){
+            healthPoints = 0;
+        }
+    }
 
     public void replenishHealth() {
         healthPoints += 30;
-        if (healthPoints >= 100) {
+        if (healthPoints > 100) {
             healthPoints = 100;
         }
     }
 
+    public void replenishAmmo() {
+        totalAmmunition += CLIP_SIZE;
+    }
+
     public float getMouseDirection() {
-        cursorBody.setTransform(screen.getMousePos().x, screen.getMousePos().y, 0);
-        Vector3 playerPos = new Vector3(playerBody.getPosition().x, playerBody.getPosition().y, playerBody.getAngle());
+        Vector3 playerPos = getPlayerPos();
         playerPos.sub(screen.getMousePos());
         Vector2 direction = new Vector2(playerPos.x, playerPos.y);
         return direction.angleRad();
     }
 
-    public List<Projectile> getProjectiles() {
+    public Array<PlayerProjectile> getProjectiles() {
         return projectiles;
     }
 
@@ -245,11 +244,17 @@ public class Player extends Sprite {
                 playerBody.getLinearVelocity().x != 0)
                 && !reloading && !shooting) {
             return State.MOVING;
-        } if (shooting) {
+        }
+        if (shooting) {
             return State.SHOOTING;
-        } if (reloading) {
+        }
+        if (reloading) {
             return State.RELOADING;
-        } else {
+        }
+        if (healthPoints <= 0){
+            return State.DEAD;
+        }
+        else {
             return State.IDLE;
         }
     }
@@ -258,9 +263,16 @@ public class Player extends Sprite {
         return reloading;
     }
 
-    public int getAmmunition() {
-        return ammunition;
+    public Vector3 getPlayerPos(){
+        return new Vector3(playerBody.getPosition().x, playerBody.getPosition().y, playerBody.getAngle());
     }
 
-
+    @Override
+    public void draw(Batch batch){
+        super.draw(batch);
+        crosshair.draw(batch);
+        for (PlayerProjectile projectile : getProjectiles()){
+            projectile.draw(batch);
+        }
+    }
 }

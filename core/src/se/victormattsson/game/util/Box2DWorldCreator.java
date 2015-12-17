@@ -2,8 +2,10 @@ package se.victormattsson.game.util;
 
 
 import com.badlogic.gdx.maps.MapObject;
+import com.badlogic.gdx.maps.objects.EllipseMapObject;
 import com.badlogic.gdx.maps.objects.RectangleMapObject;
 import com.badlogic.gdx.maps.tiled.TiledMap;
+import com.badlogic.gdx.math.Ellipse;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef;
@@ -14,19 +16,24 @@ import com.badlogic.gdx.utils.Array;
 
 import se.victormattsson.game.ShooterGame;
 import se.victormattsson.game.screens.PlayScreen;
-import se.victormattsson.game.sprites.Crate;
-import se.victormattsson.game.sprites.FirstAid;
+import se.victormattsson.game.sprites.enemies.Enemy;
+import se.victormattsson.game.sprites.items.Ammunition;
+import se.victormattsson.game.sprites.items.Crate;
+import se.victormattsson.game.sprites.items.FirstAid;
 
 /**
  * Created by victormattsson on 2015-12-06.
  */
 public class Box2DWorldCreator {
 
+    private static Array<Enemy> enemies;
     private Array<FirstAid> firstaids = new Array<FirstAid>();
     private Array<Crate> crates = new Array<Crate>();
+    private Array<Ammunition> ammunition = new Array<Ammunition>();
 
     public Box2DWorldCreator(PlayScreen screen){
 
+        enemies = new Array<Enemy>();
         World world = screen.getWorld();
         TiledMap map = screen.getMap();
         BodyDef bdef = new BodyDef();
@@ -34,7 +41,7 @@ public class Box2DWorldCreator {
         PolygonShape shape = new PolygonShape();
         Body body;
 
-        //Generate wall playerBody/fixtures
+        //Generate wall body/fixtures
         for (MapObject object: map.getLayers().get(2).getObjects().getByType(RectangleMapObject.class)) {
             Rectangle rectangle = ((RectangleMapObject)object).getRectangle();
             bdef.type = BodyDef.BodyType.StaticBody;
@@ -59,6 +66,18 @@ public class Box2DWorldCreator {
             Rectangle rectangle = ((RectangleMapObject)object).getRectangle();
             firstaids.add(new FirstAid(screen, rectangle));
         }
+
+        //create ammo body/fixtures
+        for (MapObject object: map.getLayers().get(5).getObjects().getByType(RectangleMapObject.class)) {
+            Rectangle rectangle = ((RectangleMapObject)object).getRectangle();
+            ammunition.add(new Ammunition(screen, rectangle));
+        }
+
+        //create enemies body/fixtures
+        for (MapObject object: map.getLayers().get(6).getObjects().getByType(EllipseMapObject.class)) {
+            Ellipse ellipse = ((EllipseMapObject)object).getEllipse();
+            enemies.add(new Enemy(screen, ellipse));
+        }
     }
 
     public Array<Crate> getCrates() {
@@ -67,6 +86,14 @@ public class Box2DWorldCreator {
 
     public Array<FirstAid> getFirstAids() {
         return firstaids;
+    }
+
+    public Array<Ammunition> getAmmunition() {
+        return ammunition;
+    }
+
+    public static Array<Enemy> getEnemies() {
+        return enemies;
     }
 
 }
