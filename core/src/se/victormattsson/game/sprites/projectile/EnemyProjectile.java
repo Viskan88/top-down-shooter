@@ -25,9 +25,9 @@ public class EnemyProjectile extends Projectile {
 
         projectileTexture = new Texture(Gdx.files.internal("bullet.png"));
         setRegion(projectileTexture);
-        setBounds(0, 0, 6 / ShooterGame.PPM, 4 / ShooterGame.PPM);
 
         defineProjectile();
+        setBounds(projectile.getPosition().x, projectile.getPosition().y, 6 / ShooterGame.PPM, 4 / ShooterGame.PPM);
     }
 
     public void update(float dt){
